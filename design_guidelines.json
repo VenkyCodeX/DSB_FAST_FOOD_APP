@@ -1,0 +1,159 @@
+{
+  "app_name": "DSB Fast Food",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "An authentic, lightning-fast native food ordering experience for DSB Fast Food in Shankar Nagar, Raipur, combining iOS-grade clean surfaces with appetite-driven photography.",
+  "color": {
+    "surface": "#FDFBF7",
+    "onSurface": "#1C1917",
+    "surfaceSecondary": "#F5F2EB",
+    "onSurfaceSecondary": "#292524",
+    "surfaceTertiary": "#EAE5D9",
+    "onSurfaceTertiary": "#44403C",
+    "surfaceInverse": "#1C1917",
+    "onSurfaceInverse": "#FAFAF9",
+    "brand": "#C2410C",
+    "brandPrimary": "#C2410C",
+    "onBrandPrimary": "#FAFAF9",
+    "brandSecondary": "#EA580C",
+    "onBrandSecondary": "#FAFAF9",
+    "brandTertiary": "#FFEDD5",
+    "onBrandTertiary": "#9A3412",
+    "success": "#15803D",
+    "onSuccess": "#F0FDF4",
+    "warning": "#B45309",
+    "onWarning": "#FEF3C7",
+    "error": "#B91C1C",
+    "onError": "#FEF2F2",
+    "info": "#0369A1",
+    "onInfo": "#E0F2FE",
+    "border": "#E7E5E4",
+    "borderStrong": "#D6D3D1",
+    "divider": "#E7E5E4",
+    "muted": "#78716C",
+    "onBrand": "#FAFAF9"
+  },
+  "typography": {
+    "displayFontFamily": "PlusJakartaSans_500Medium",
+    "textFontFamily": "PlusJakartaSans_400Regular",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous iOS vertical rhythm with compact touch padding, strict 8pt grid alignment, and sticky CTA clearance.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Ionicons",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use frosted glass header and bottom tab bar over scrolling lists",
+      "Apply translucent tinted glass on hero category overlays"
+    ],
+    "dont's": [
+      "Never blur form fields or dense card interiors",
+      "Avoid glass overlays without solid tinted fallback on low-end Android"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home",
+      "purpose": "Showcase restaurant open/closed status, dynamic delivery estimate, quick category chips, and top hero dishes.",
+      "states": {
+        "loading": "Centered sleek spinner with amber tint",
+        "empty": "No items available illustration with reload action",
+        "error": "Banner with readable server message and retry button"
+      },
+      "layout": "Sticky top bar with GPS location picker & language toggle, restaurant open/closed badge, search bar with category pills (Noodles, Rice, Starters, Drinks), featured top-seller cards with gradient image scrims, and quick reorder section."
+    },
+    {
+      "name": "Menu",
+      "purpose": "Comprehensive categorization of Noodles, Rice, Starters, and Drinks with live inventory sold-out badges.",
+      "states": {
+        "loading": "Skeleton card loader for menu grid",
+        "empty": "No menu items found for category",
+        "error": "Failed to fetch menu from backend with retry"
+      },
+      "layout": "Segmented category selector bar at top, searchable list/grid of items with price, description, sold-out indicator, and instant quantity stepper adding to cart."
+    },
+    {
+      "name": "Cart",
+      "purpose": "Review cart items, apply coupons (e.g. DSB50), calculate delivery fees and total with sticky checkout action.",
+      "states": {
+        "loading": "Calculating totals spinner",
+        "empty": "Hungry? Add delicious noodles or starters from the menu to get started with primary browse CTA",
+        "error": "Coupon validation error alert"
+      },
+      "layout": "Scrollable list of cart items with increment/decrement steppers, coupon code input field with apply/remove toggle, bill breakdown summary (subtotal, delivery fee ₹10, min order ₹50 check), and sticky bottom checkout container."
+    },
+    {
+      "name": "Orders",
+      "purpose": "Track live order status (Order Received -> Preparing -> Ready -> Completed) and view complete order history.",
+      "states": {
+        "loading": "Loading active orders tracker",
+        "empty": "No past orders yet. Place your first order to track it live!",
+        "error": "Failed to load orders history"
+      },
+      "layout": "Segmented tab for Active vs Past orders, live status tracker stepper with progress bar, WhatsApp support quick-connect button (9321611315), and order details modal."
+    },
+    {
+      "name": "Profile",
+      "purpose": "Manage customer phone verification, saved delivery addresses, language preferences, and rating reviews.",
+      "states": {
+        "loading": "Loading profile details",
+        "empty": "Please login with phone OTP",
+        "error": "Failed to update profile"
+      },
+      "layout": "Phone number display with OTP verification status, saved delivery address GPS/manual card, English/Hindi language switcher, restaurant hours info (11 AM–11 PM), and support links."
+    }
+  ],
+  "images": {
+    "hero_noodles": {
+      "url": "https://images.unsplash.com/photo-1585032226651-759b368d7246?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxJbmRpYW4lMjBzdHJlZXQlMjBmb29kJTIwbm9vZGxlcyUyMGZyaWёдGhyZWUlMjBjaGlja2VuJTIwNjUlMjByZXN0YXVyYW50JTIwZGlzaHxlbnwwfHx8fDE3ODg5MjQwMzN8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Delicious stir-fried noodles with vegetable garnish"
+    },
+    "hero_rice": {
+      "url": "https://images.unsplash.com/photo-1751618646882-4221d5e3b1c2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxJbmRpYW4lMjBzdHJlZXQlMjBmb29kJTIwbm9vZGxlcyUyMGZyaWVkJTIwcmljZSUyMGNoaWNrZW4lMjA2NSUyMHJlc3RhdXJhbnQlMjBkaXNofGVufDB8fHx8MTc4ODkyNDAzM3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Aromatic fried rice bowl"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Build a production-quality cross-platform React Native Expo TypeScript app for DSB Fast Food, Shankar Nagar, Raipur.",
+    "Implement the 5 tabs: Home, Menu, Cart, Orders, Profile using Expo Router bottom tabs.",
+    "Ensure complete backend API integration with GET /api/items, POST /api/orders/coupon/validate, POST /api/otp/send, POST /api/otp/verify, POST /api/orders, GET /api/orders/by-phone/:phone, GET /api/orders/:id, PATCH /api/orders/:id/delivery-confirm, PATCH /api/orders/:id/rating.",
+    "Support live inventory soldOut status, minimum order ₹50, delivery charge ₹10, restaurant hours 11 AM-11 PM dynamic status, and WhatsApp 9321611315.",
+    "Incorporate English and Hindi language switching with local persistence via AsyncStorage.",
+    "Strictly adhere to iOS-Native Clean palette (#FDFBF7 surface, #C2410C brand primary, warm sand tones, no banned blues/purples).",
+    "Ensure all image cards include a gradient-to-dark scrim for pristine text readability."
+  ]
+}
