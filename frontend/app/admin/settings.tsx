@@ -4,6 +4,7 @@ import React from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "@/src/api/client";
 import { AdminShell } from "@/src/components/admin-shell";
+import { WeeklyChart } from "@/src/components/weekly-chart";
 import { initialBranches } from "@/src/data/branches";
 import { makeStyles, useTheme } from "@/src/theme";
 
@@ -20,8 +21,11 @@ export default function AdminSettingsScreen() {
     catch (value) { setError(value instanceof Error ? value.message : "Could not update the PIN."); }
     finally { setSaving(false); }
   };
-  return <AdminShell title="Settings" subtitle="Security & branch info">
+  return <AdminShell title="Settings" subtitle="Sales, security & branch info">
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}><ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.section, { marginTop: 0 }]}>SALES</Text>
+      <WeeklyChart />
+      <Text style={styles.section}>SECURITY</Text>
       <View style={styles.card}><View style={styles.cardHeader}><View style={styles.cardIcon}><Ionicons name="key-outline" size={20} color={colors.brandPrimary} /></View><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Change admin PIN</Text><Text style={styles.cardText}>The new PIN takes effect on the next admin login. Anyone with the current PIN will be logged out when they next sign in.</Text></View></View>
         <Text style={styles.label}>New PIN</Text><TextInput testID="new-pin" value={newPin} onChangeText={setNewPin} secureTextEntry autoCapitalize="none" placeholder="At least 4 characters" placeholderTextColor={colors.muted} style={styles.input} />
         <Text style={styles.label}>Confirm new PIN</Text><TextInput testID="confirm-pin" value={confirmPin} onChangeText={setConfirmPin} secureTextEntry autoCapitalize="none" placeholder="Repeat the new PIN" placeholderTextColor={colors.muted} style={styles.input} onSubmitEditing={() => void save()} />

@@ -27,6 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export type AdminItem = { _id: string; branchId: string; name: string; price: number; category: string; soldOut: boolean };
 export type OrderSummary = Record<OrderStatus, number> & { today: { count: number; revenue: number; completed: number; date: string } };
+export type WeeklyStats = { days: { date: string; label: string; count: number; revenue: number }[]; totalOrders: number; totalRevenue: number };
 
 export const api = {
   async inventory(branchId?: string): Promise<Array<{ _id?: string; name: string; soldOut?: boolean }>> { return request(`/items${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ""}`); },
@@ -45,6 +46,7 @@ export const api = {
     async hasSession() { return Boolean(await storage.secureGet(ADMIN_TOKEN_KEY, null)); },
     async orders(status?: string, branchId?: string): Promise<Order[]> { const params = new URLSearchParams(); if (status) params.set("status", status); if (branchId) params.set("branchId", branchId); const query = params.toString(); return request<Order[]>(`/admin/orders${query ? `?${query}` : ""}`); },
     async summary(): Promise<OrderSummary> { return request<OrderSummary>("/admin/orders/summary"); },
+    async weekly(): Promise<WeeklyStats> { return request<WeeklyStats>("/admin/orders/weekly"); },
     async setStatus(orderId: string, status: OrderStatus): Promise<Order> { return request<Order>(`/admin/orders/${encodeURIComponent(orderId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }); },
     async items(branchId: string): Promise<AdminItem[]> { return request<AdminItem[]>(`/items?branchId=${encodeURIComponent(branchId)}`); },
     async setSoldOut(itemId: string, soldOut: boolean): Promise<AdminItem> { return request<AdminItem>(`/admin/items/${encodeURIComponent(itemId)}/sold-out`, { method: "PATCH", body: JSON.stringify({ soldOut }) }); },

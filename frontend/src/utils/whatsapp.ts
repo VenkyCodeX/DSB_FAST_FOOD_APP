@@ -3,9 +3,9 @@ import type { Branch, OrderItem } from "@/src/types";
 
 export const DEFAULT_WHATSAPP = "919321611315";
 
-export type WhatsAppOrder = { orderId: string; customerName: string; phone?: string; address: string; total: string | number; items: OrderItem[]; branch?: Branch | null };
+export type WhatsAppOrder = { orderId: string; customerName: string; phone?: string; address: string; total: string | number; items: OrderItem[]; branch?: Branch | null; notes?: string };
 
-export function buildOrderMessage({ orderId, customerName, phone, address, total, items, branch }: WhatsAppOrder) {
+export function buildOrderMessage({ orderId, customerName, phone, address, total, items, branch, notes }: WhatsAppOrder) {
   const lines = items.map((item) => `• ${item.quantity} × ${item.name} — ₹${item.price * item.quantity}`).join("\n");
   return [
     `🍜 *DSB FAST FOOD — New Order*`,
@@ -20,6 +20,7 @@ export function buildOrderMessage({ orderId, customerName, phone, address, total
     lines || "—",
     ``,
     `*Total:* ₹${total}`,
+    notes ? `*Notes:* ${notes}` : null,
     `*Payment:* Cash on Delivery`,
   ].filter((line) => line !== null).join("\n");
 }

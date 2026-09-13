@@ -63,6 +63,7 @@ export type Order = {
   phoneNumber?: string;
   address?: string;
   itemsOrdered: OrderItem[];
+  notes?: string;
   totalAmount: number;
   discount?: number;
   deliveryCharge?: number;

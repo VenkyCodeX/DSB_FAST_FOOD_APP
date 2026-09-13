@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,6 +36,7 @@ class OrderCreate(BaseModel):
     phoneNumber: str = Field(pattern=r"^\d{10}$")
     address: str = Field(min_length=1)
     itemsOrdered: list[OrderItemIn] = Field(min_length=1)
+    notes: str = Field(default="", max_length=200)
     totalAmount: float = Field(ge=0)
     couponCode: str | None = ""
     discount: float = 0
@@ -96,6 +97,7 @@ async def create_order(body: OrderCreate, identity: dict = Depends(current_ident
     doc = {
         **body.model_dump(),
         "itemsOrdered": [item.model_dump() for item in body.itemsOrdered],
+        "notes": body.notes.strip(),
         "orderId": order_id,
         "status": "Order Received",
         "prepTime": DEFAULT_PREP_TIME,
@@ -190,6 +192,25 @@ async def admin_summary():
         **{status: counts.get(status, 0) for status in ORDER_STATUSES},
         "today": {"count": today["count"], "revenue": round(float(today["revenue"] or 0), 2), "completed": today["completed"], "date": start_of_day.date().isoformat()},
     }
+
+
+@router.get("/admin/orders/weekly", dependencies=[Depends(require_admin)])
+async def admin_weekly():
+    tz = ZoneInfo(BRANCH_TZ)
+    today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = today - timedelta(days=6)
+    rows = await db.orders.aggregate([
+        {"$match": {"createdAt": {"$gte": start}}},
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$createdAt", "timezone": BRANCH_TZ}}, "count": {"$sum": 1}, "revenue": {"$sum": "$totalAmount"}}},
+    ]).to_list(10)
+    by_day = {row["_id"]: row for row in rows}
+    days = []
+    for offset in range(7):
+        day = start + timedelta(days=offset)
+        key = day.date().isoformat()
+        row = by_day.get(key, {"count": 0, "revenue": 0})
+        days.append({"date": key, "label": day.strftime("%a"), "count": row["count"], "revenue": round(float(row["revenue"] or 0), 2)})
+    return {"days": days, "totalOrders": sum(d["count"] for d in days), "totalRevenue": round(sum(d["revenue"] for d in days), 2)}
 
 
 @router.patch("/admin/orders/{order_id}/status", dependencies=[Depends(require_admin)])

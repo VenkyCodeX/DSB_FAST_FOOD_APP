@@ -72,3 +72,8 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - GET /api/admin/orders/summary now includes `today: {count, revenue, completed, date}` (IST day). Orders screen shows two stat cards.
 - Admin orders polls every 10s; new "Order Received" ids trigger `assets/sounds/new-order.wav` + haptic + green toast (tap → New filter). Bell icon toggles sound.
 - Real SMS OTP: PENDING — user will provide MSG91/Twilio credentials later. Swap point: `routes/auth.py send_otp`.
+
+## Session: Kitchen ticket / Weekly chart / Order notes (done)
+- Orders accept `notes` (≤200 chars). Checkout has quick chips (Less spicy, Extra spicy, No onion, No garlic, Extra sauce) + free text. Notes shown highlighted on admin card, receipt, WhatsApp message and kitchen ticket.
+- Admin card print icon → `src/utils/kitchen-ticket.ts` (RN Share sheet on native; navigator.share / wa.me on web).
+- GET /api/admin/orders/weekly → 7-day {count, revenue} (IST). `src/components/weekly-chart.tsx` bar chart with Orders/Revenue toggle in admin Settings tab.
