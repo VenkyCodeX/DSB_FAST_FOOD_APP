@@ -41,3 +41,8 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - P1: Add integration tests against the real backend and verify sold-out updates during an active cart.
 - P1: Swap the temporary DSB word-mark for the real logo asset once supplied by the owner.
 - P2: Add push notifications for order status updates.
+
+## Logo integration (done)
+- Official DSB Fast Food logo saved at `frontend/assets/images/logo.png`.
+- Generated app icon, adaptive icon, splash image and favicon from the logo (black background).
+- Logo shown on: branch selection (welcome) screen, Home header, and phone sign-in screen.
