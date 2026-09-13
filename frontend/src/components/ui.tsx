@@ -17,14 +17,16 @@ export function QuantityStepper({ quantity, onChange }: { quantity: number; onCh
 
 export function FoodCard({ item, compact = false }: { item: MenuItem; compact?: boolean }) {
   const router = useRouter();
-  const { addToCart, language } = useApp();
+  const { addToCart, language, selectedBranch } = useApp();
+  const { colors } = useTheme();
   const styles = useStyles();
+  const unavailable = Boolean(item.soldOut || !selectedBranch?.isActive || selectedBranch.isComingSoon);
   return <View style={[styles.card, compact && styles.compactCard]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`${item.name}, ₹${item.price}`} onPress={() => router.push(`/product/${item.id}`)} style={({ pressed }) => [pressed && styles.pressed]}>
       <Image source={{ uri: item.image }} style={styles.foodImage} accessibilityIgnoresInvertColors />
       <View style={styles.cardBody}><Text style={styles.itemName} numberOfLines={1}>{item.name}</Text><Text style={styles.itemDescription} numberOfLines={1}>{item.description}</Text></View>
     </Pressable>
-    <View style={styles.cardFooter}><Text style={styles.price}>₹{item.price}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Add ${item.name}`} disabled={item.soldOut} onPress={() => addToCart(item)} style={[styles.addButton, item.soldOut && styles.soldButton]}><Text style={[styles.addText, item.soldOut && styles.soldText]}>{item.soldOut ? translate(language, "soldOut") : `+ ${translate(language, "add")}`}</Text></Pressable></View>
+    <View style={styles.cardFooter}><Text style={styles.price}>₹{item.price}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Add ${item.name}`} disabled={unavailable} onPress={() => addToCart(item)} style={[styles.addButton, unavailable && styles.soldButton]}><Text style={[styles.addText, unavailable && { color: colors.muted }]}>{item.soldOut ? translate(language, "soldOut") : unavailable ? "Coming soon" : `+ ${translate(language, "add")}`}</Text></Pressable></View>
   </View>;
 }
 

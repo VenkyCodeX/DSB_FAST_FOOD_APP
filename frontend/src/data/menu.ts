@@ -11,16 +11,16 @@ const descriptions: Record<Category, string> = {
 export const categories: Category[] = ["Noodles", "Rice", "Starters", "Drinks"];
 
 export const initialMenu: MenuItem[] = [
-  ["chicken-noodles", "Chicken Noodles", 80, "Noodles", foodImages.noodles],
-  ["egg-noodles", "Egg Noodles", 70, "Noodles", foodImages.noodles],
-  ["veg-noodles", "Veg Noodles", 60, "Noodles", foodImages.noodles],
-  ["chicken-fried-rice", "Chicken Fried Rice", 90, "Rice", foodImages.rice],
-  ["egg-fried-rice", "Egg Fried Rice", 75, "Rice", foodImages.rice],
-  ["veg-fried-rice", "Veg Fried Rice", 65, "Rice", foodImages.rice],
-  ["chicken-65", "Chicken 65", 120, "Starters", foodImages.starter],
-  ["chilli-chicken", "Chilli Chicken", 130, "Starters", foodImages.starter],
-  ["veg-manchurian", "Veg Manchurian", 90, "Starters", foodImages.starter],
-  ["cool-drinks", "Cool Drinks", 30, "Drinks", foodImages.drink],
+  ["chicken-noodles", "Chicken Noodles", 80, "Noodles", foodImages.chickenNoodles],
+  ["egg-noodles", "Egg Noodles", 70, "Noodles", foodImages.eggNoodles],
+  ["veg-noodles", "Veg Noodles", 60, "Noodles", foodImages.vegNoodles],
+  ["chicken-fried-rice", "Chicken Fried Rice", 90, "Rice", foodImages.chickenFriedRice],
+  ["egg-fried-rice", "Egg Fried Rice", 75, "Rice", foodImages.eggFriedRice],
+  ["veg-fried-rice", "Veg Fried Rice", 65, "Rice", foodImages.vegFriedRice],
+  ["chicken-65", "Chicken 65", 120, "Starters", foodImages.chicken65],
+  ["chilli-chicken", "Chilli Chicken", 130, "Starters", foodImages.chilliChicken],
+  ["veg-manchurian", "Veg Manchurian", 90, "Starters", foodImages.vegManchurian],
+  ["cool-drinks", "Cool Drinks", 30, "Drinks", foodImages.coolDrinks],
 ].map(([id, name, price, category, image]) => ({
   id: id as string,
   name: name as string,

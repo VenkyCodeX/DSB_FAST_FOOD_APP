@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import { storage } from "@/src/utils/storage";
-import type { CouponResult, MenuItem, Order, AuthSession } from "@/src/types";
+import type { CouponResult, Order, AuthSession, RestaurantUpdate } from "@/src/types";
 
 const baseUrl = String(Constants.expoConfig?.extra?.apiBaseUrl ?? process.env.EXPO_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
 const API = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
@@ -24,7 +24,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  async inventory(): Promise<Array<{ _id?: string; name: string; soldOut?: boolean }>> { return request("/items"); },
+  async inventory(branchId?: string): Promise<Array<{ _id?: string; name: string; soldOut?: boolean }>> { return request(`/items${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ""}`); },
+  async updates(branchId: string): Promise<RestaurantUpdate[]> { return request(`/updates?branchId=${encodeURIComponent(branchId)}`); },
   async sendOtp(phone: string) { return request<{ success?: boolean; message?: string }>("/otp/send", { method: "POST", body: JSON.stringify({ phone }) }); },
   async verifyOtp(phone: string, otp: string): Promise<AuthSession> { return request<AuthSession>("/otp/verify", { method: "POST", body: JSON.stringify({ phone, otp }) }); },
   async validateCoupon(code: string): Promise<CouponResult> { return request<CouponResult>("/orders/coupon/validate", { method: "POST", body: JSON.stringify({ code }) }); },

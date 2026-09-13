@@ -28,11 +28,16 @@ Build a real customer-facing Android/iOS ordering app for DSB Fast Food, Shankar
 - Added persistent cart/session/language state, secure token storage, coupon/order/tracking/review API client, GPS/manual address flow, and WhatsApp message composition.
 - Verified TypeScript, ESLint, and browser smoke flow: Home → Menu → add Chicken Noodles → Cart; tester also verified product and profile flows.
 
+## Implemented — 2026-02 (dark theme refresh)
+- Replaced the warm-sand palette with a fiery near-black + deep-red dark theme (surface `#0A0A0A`, brand `#DC2626`, accent `#FF4136`) driven from the user's reference image; tokens applied via `src/theme.ts` and mirrored in `design_guidelines.json`.
+- Swapped the placeholder SVG artwork for realistic Unsplash food photography per menu item and added a fresh moody hero image on Home.
+- Set a light-content status bar and dark stack background so every screen (Home, Menu, Cart, Orders, Profile, Auth, Checkout, Product) renders consistently on dark.
+
 ## Current limitation
 The requested existing Node.js/Express backend URL was not supplied. The workspace-configured preview URL points to the starter FastAPI scaffold and currently returns 404 for `/api/items`, `/api/otp/send`, `/api/orders/coupon/validate`, and order routes. The app intentionally does not fake those responses; connect the real DSB backend URL to enable end-to-end ordering.
 
 ## Prioritized backlog
 - P0: Configure a reachable existing DSB Node/Express API URL; verify real OTP, coupon, COD order creation, history, tracking, delivery confirmation, and review submission.
 - P1: Add integration tests against the real backend and verify sold-out updates during an active cart.
-- P1: Replace temporary local illustrated food art with approved DSB photography/logo assets when supplied.
+- P1: Swap the temporary DSB word-mark for the real logo asset once supplied by the owner.
 - P2: Add push notifications for order status updates.

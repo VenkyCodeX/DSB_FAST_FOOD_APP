@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Tabs } from "expo-router";
 import { Platform, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/src/store/app-store";
 import { useTheme } from "@/src/theme";
 
@@ -22,9 +21,8 @@ function NativeBar() {
 function ClassicBar() {
   const { colors } = useTheme();
   const { language, itemCount } = useApp();
-  const insets = useSafeAreaInsets();
   const labels = language === "hi" ? ["होम", "मेन्यू", "कार्ट", "ऑर्डर", "प्रोफ़ाइल"] : ["Home", "Menu", "Cart", "Orders", "Profile"];
-  return <Tabs screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: colors.brandPrimary, tabBarInactiveTintColor: colors.muted, tabBarLabelStyle: { fontSize: 10, fontWeight: "700" }, tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: Platform.OS === "web" ? 64 : undefined, paddingBottom: Platform.OS === "web" ? 6 : insets.bottom }, tabBarItemStyle: { alignSelf: "center" }, tabBarIcon: ({ color, size }) => { const names: Record<string, keyof typeof Ionicons.glyphMap> = { index: "home", menu: "restaurant-outline", cart: "bag-handle-outline", orders: "time-outline", profile: "person-outline" }; return <View><Ionicons name={names[route.name] ?? "ellipse-outline"} color={color} size={size} />{route.name === "cart" && itemCount > 0 ? <View style={{ position: "absolute", right: -7, top: -5, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 8, backgroundColor: colors.brandPrimary, alignItems: "center", justifyContent: "center" }}><Text style={{ color: colors.onBrandPrimary, fontSize: 9, fontWeight: "800" }}>{itemCount}</Text></View> : null}</View>; }, })}>
+  return <Tabs screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: colors.brandPrimary, tabBarInactiveTintColor: colors.muted, tabBarLabelStyle: { fontSize: 10, fontWeight: "700", marginBottom: Platform.OS === "android" ? 2 : 0 }, tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, height: Platform.OS === "web" ? 64 : undefined }, tabBarItemStyle: { alignSelf: "center", minHeight: 50 }, tabBarHideOnKeyboard: true, tabBarIcon: ({ color, size }) => { const names: Record<string, keyof typeof Ionicons.glyphMap> = { index: "home", menu: "restaurant-outline", cart: "bag-handle-outline", orders: "time-outline", profile: "person-outline" }; return <View><Ionicons name={names[route.name] ?? "ellipse-outline"} color={color} size={size} />{route.name === "cart" && itemCount > 0 ? <View style={{ position: "absolute", right: -7, top: -5, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 8, backgroundColor: colors.brandPrimary, alignItems: "center", justifyContent: "center" }}><Text style={{ color: colors.onBrandPrimary, fontSize: 9, fontWeight: "800" }}>{itemCount}</Text></View> : null}</View>; }, })}>
     <Tabs.Screen name="index" options={{ title: labels[0] }} />
     <Tabs.Screen name="menu" options={{ title: labels[1] }} />
     <Tabs.Screen name="cart" options={{ title: labels[2] }} />

@@ -12,7 +12,38 @@ export type MenuItem = {
   soldOut?: boolean;
 };
 
-export type CartItem = MenuItem & { quantity: number };
+export type Branch = {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  phone?: string;
+  whatsapp?: string;
+  latitude?: number;
+  longitude?: number;
+  openingTime?: string;
+  closingTime?: string;
+  isActive: boolean;
+  isComingSoon: boolean;
+  openingDate?: string;
+  deliveryCharge?: number;
+  minimumOrder?: number;
+};
+
+export type RestaurantUpdate = {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  date?: string;
+  active: boolean;
+  branchId?: string;
+  expiresAt?: string;
+};
+
+export type CartItem = MenuItem & { quantity: number; branchId: string };
 
 export type User = {
   name: string;
@@ -40,6 +71,8 @@ export type Order = {
   createdAt?: string;
   rating?: number;
   review?: string;
+  branchId?: string;
+  branchName?: string;
 };
 
 export type CouponResult = { valid?: boolean; success?: boolean; discount?: number; message?: string };
