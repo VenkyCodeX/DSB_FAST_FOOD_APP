@@ -101,3 +101,25 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+## 2026-09-13 — Backend + Admin + WhatsApp/Splash/Receipt (main agent)
+backend:
+  - task: "DSB FastAPI backend (OTP dev-mode auth, orders, coupons, items sold-out, updates, admin)"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py, /app/backend/routes/*.py, /app/backend/core/*.py"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Built full API. Admin PIN dsb2025. DEV_MODE returns devOtp in /api/otp/send. Smoke-tested via curl: health, items, otp send/verify, create order, by-phone, admin login, summary, coupon."
+frontend:
+  - task: "OTP dev hint, admin panel (/admin, /admin/orders, /admin/menu, /admin/updates), receipt Call/Reorder/WhatsApp, active order banner + ready chime, animated splash"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/admin/*.tsx, /app/frontend/app/auth/otp.tsx, /app/frontend/app/order/[id].tsx, /app/frontend/src/components/active-order-banner.tsx"
+    needs_retesting: true
+test_plan:
+  current_focus: ["end-to-end: branch select -> add to cart -> checkout -> OTP login (devOtp) -> place order -> success -> track -> admin advances status -> banner shows on Home -> reorder"]
+agent_communication:
+  - agent: "main"
+    message: "Please test backend API + full frontend flow. Credentials in /app/memory/test_credentials.md."

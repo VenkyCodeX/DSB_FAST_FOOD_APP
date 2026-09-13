@@ -1,0 +1,55 @@
+{
+  "summary": "Comprehensive backend + frontend validation for DSB Fast Food. Backend: 22/22 pytest tests pass covering health, catalog seed (10 items), OTP flow (send/verify/cooldown/reuse), coupons (case-insensitive), orders CRUD (create/get/by-phone), auth guards (401/403), admin login (PIN + role guard), status transitions, delivery confirm gating, rating gating, sold-out toggle roundtrip, and updates create/toggle/delete lifecycle. Frontend: end-to-end customer flow works — branch chooser -> Home (CLOSED/OPEN banner reflects server local time; automated during CLOSED window but order still placed successfully because backend does not enforce hours) -> Menu -> product detail -> Add to cart -> Cart -> Checkout -> Sign-in-with-phone -> OTP screen (testID dev-otp-hint autofills via tap) -> Verify OTP -> back to Checkout (phone prefilled) -> Place COD order -> Success screen with order ID DSB-XXXXXX, prep time and WhatsApp status card. Track order receipt (testIDs order-receipt, call-branch, reorder-button) renders logo, branch details, itemised total. Admin flow works — /admin PIN input + login button testIDs present, PIN dsb2025 opens Orders panel, filter chips visible, advance-<orderId> transitions Order Received -> Preparing -> Ready. admin-logout icon present. No deprecated Expo packages (expo-av / expo-barcode-scanner / expo-background-fetch) detected in package.json. Only a benign RN Web warning: 'props.pointerEvents is deprecated. Use style.pointerEvents.'",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/items", "issue": "Response leaks Mongo _id as a string field on items (used as key for admin sold-out toggle). Not JSON-serialization broken because it is stringified in serialize(), but the payload exposes _id which convention says to omit. Consider mapping to 'id' for consistency with orders/updates."},
+      {"endpoint": "POST /api/orders", "issue": "Backend does not validate branch operating hours — accepts orders for nursi even when Home hero shows 'CLOSED NOW'. If ordering should be blocked outside 11:00–23:00, enforce server-side or in Checkout guard."},
+      {"endpoint": "GET /api/orders/{orderId}", "issue": "Public endpoint exposes customer name/phone/address for any known orderId. Consider tightening to owner/admin only, or requiring a signed link."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "checkout/index.tsx", "issue": "Two duplicate 'Place COD order' Pressable rendered in DOM (get_by_text('Place COD order').count() == 2) — one appears sticky at bottom, one inline; consider deduping to prevent selector ambiguity and possible double-click hazard.", "testID": "N/A", "priority": "LOW"},
+      {"component": "cart product detail vs list", "issue": "The '+ Add' pill on menu list cards navigates to the product detail page instead of adding directly to cart. This is likely intentional but the label '+ Add' implies immediate add; consider 'View' or add a real quick-add.", "testID": "N/A", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Active order banner on Home", "issue": "Banner (testID active-order-banner) could not be visually verified in an automated fresh browser context because customer session/token is stored per client; when the browser context resets between scripts the user is signed-out and the banner is hidden. Code review of /app/frontend/src/components/active-order-banner.tsx shows the correct testID, session guard and status filter (Preparing/Ready) — behaviour appears correct. Recommend main agent manually verify by placing order + advancing status in a single browser session.", "affected_testIDs": ["active-order-banner"]}
+    ],
+    "design_issues": [
+      {"screen": "Branch chooser (initial)", "issues": ["No testIDs on branch cards — E2E must fall back to text selectors. Consider adding testID='branch-card-nursi'/'branch-card-deglur' for automation."]}
+    ],
+    "react_native_issues": [
+      {"component": "RN Web warning", "issue": "Console warning 'props.pointerEvents is deprecated. Use style.pointerEvents.' — emitted repeatedly on every screen. Track down component using pointerEvents prop (likely a wrapper or animated splash) and migrate to style.pointerEvents. Per task note this can be ignored, but should still be cleaned up."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: strip Mongo _id from GET /api/items response (map to 'id' like orders/updates).",
+    "Consider gating POST /api/orders on branch operating hours (matches UI CLOSED state).",
+    "Consider tightening GET /api/orders/{orderId} authorization (currently public).",
+    "Investigate duplicate 'Place COD order' Pressable in checkout/index.tsx.",
+    "Fix react-native-web pointerEvents deprecation warning.",
+    "Optional: add testID to branch chooser cards for stable E2E selectors."
+  ],
+  "critical_code_review_comments": [
+    "OTP verify increments 'attempts' before checking bcrypt hash and only marks used on success — correct.",
+    "Admin login uses hmac.compare_digest (constant-time) — good.",
+    "JWT includes datetime iat/exp objects; PyJWT converts to int automatically — OK.",
+    "Order id generator uses secrets.randbelow with uniqueness check against DB — safe.",
+    "Server side enforces phone==token.sub on order creation and by-phone read (403 otherwise) — correct authorization.",
+    "Coupon validate uppercases input server-side — matches lowercase user entry."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (new pytest suite, 22 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "~95% (core flows verified; active-order-banner only via code review due to session isolation in fresh browser contexts)"},
+  "seed_data_creation": "Multiple TEST_User orders and one 'Banner Test' order (DSB-105008) were created during testing. Admin advanced DSB-105008 to Ready. These test records remain in the DB — main agent can leave or clean at its discretion.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend base URL comes from frontend/.env EXPO_PUBLIC_BACKEND_URL (there is no EXPO_BACKEND_URL key in this project). Backend endpoint /api/orders/coupon/validate uppercases input so 'dsb10' works. Nursi opening hours are 11:00–23:00 local server (UTC) time — Home shows CLOSED/OPEN accordingly, but backend does NOT block orders outside hours. Splash animation ~2.5s: always wait ~4s after page load. React Native Web renders testID as data-testid; testIDs are present on: dev-otp-hint, order-receipt, call-branch, reorder-button, admin-pin-input, admin-login-button, admin-logout, advance-<orderId>, admin-order-<orderId>, filter-*, admin-tab-*, admin-link (on Profile tab), active-order-banner, error-fallback. There is a duplicate DOM node for 'Place COD order' — use .last for the visible pressable.",
+  "rca_of_issue": "No blocking bugs found; minor recommendations only. Fresh browser context in Playwright resets AsyncStorage so a signed-in user session does not persist across script invocations — this is why active-order-banner needs a manual/E2E single-session check, not a code defect."
+}

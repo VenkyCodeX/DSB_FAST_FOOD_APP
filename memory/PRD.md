@@ -59,3 +59,10 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - Home: `src/components/active-order-banner.tsx` shows a pulsing banner (Preparing = red/amber, Ready = green) linking to `/order/[id]`.
 - Receipt (`app/order/[id].tsx`): "Reorder these items" button → adds to cart → opens Cart; alerts about skipped items.
 - BLOCKER: user has no backend URL. All order-related features need a live backend. Proposed: build DSB API in this workspace's FastAPI backend (items, otp, orders, coupons, updates) if user agrees.
+
+## Session: Backend built in-workspace + Admin panel + Call + Ready chime (done, tested: 22/22 backend pytest, E2E frontend pass)
+- Backend (FastAPI/Mongo) `backend/server.py` + `core/{config,db,auth}.py` + `routes/{auth,catalog,orders}.py`. Env: JWT_SECRET, ADMIN_PIN=dsb2025, DEV_MODE=true (devOtp returned), OTP_TTL_SECONDS, JWT_TTL_DAYS.
+- Endpoints: /api/items, /api/updates, /api/otp/send|verify, /api/orders (create/by-phone/{id}/delivery-confirm/rating/coupon/validate), /api/admin/login, /api/admin/orders(+summary, /{id}/status), /api/admin/items/{id}/sold-out, /api/admin/updates CRUD. Server enforces active branch + IST opening hours (11:00–23:00 Nursi).
+- Frontend: OTP dev hint (tap to fill), admin panel `/admin` (PIN) → `/admin/orders|menu|updates` via `src/components/admin-shell.tsx`; Profile footer link. Receipt: Call branch (tel:), Reorder, WhatsApp share. Home banner plays `assets/sounds/ready-chime.wav` + haptic when status flips to Ready (native only).
+- To switch to real SMS: replace the OTP block in `routes/auth.py send_otp` and set DEV_MODE=false.
+- Tests: `backend/tests/backend_test.py` (pytest).

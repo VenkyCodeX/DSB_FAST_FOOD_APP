@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,10 +8,24 @@ import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, w
 import { useApp } from "@/src/store/app-store";
 import { makeStyles, useTheme } from "@/src/theme";
 
+const readyChime = require("../../assets/sounds/ready-chime.wav");
+
 export function ActiveOrderBanner() {
   const router = useRouter(); const styles = useStyles(); const { colors } = useTheme(); const { activeOrder } = useApp();
+  const player = useAudioPlayer(readyChime);
   const pulse = useSharedValue(1);
+  const previous = React.useRef<{ id: string; status: string } | null>(null);
   React.useEffect(() => { pulse.value = withRepeat(withSequence(withTiming(0.35, { duration: 700 }), withTiming(1, { duration: 700 })), -1, false); }, [pulse]);
+  React.useEffect(() => {
+    const id = activeOrder?.orderId ?? activeOrder?._id ?? activeOrder?.id ?? null;
+    const status = activeOrder?.status ?? null;
+    const flippedToReady = status === "Ready" && previous.current !== null && !(previous.current.id === id && previous.current.status === "Ready");
+    if (flippedToReady) {
+      try { player.seekTo(0); player.play(); } catch { /* audio unavailable */ }
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    }
+    previous.current = id && status ? { id, status } : { id: "", status: "" };
+  }, [activeOrder, player]);
   const dotStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
   if (!activeOrder) return null;
   const ready = activeOrder.status === "Ready";
