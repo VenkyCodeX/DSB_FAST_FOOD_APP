@@ -10,6 +10,7 @@ const tabs = [
   { href: "/admin/orders", label: "Orders", icon: "receipt-outline" },
   { href: "/admin/menu", label: "Menu", icon: "fast-food-outline" },
   { href: "/admin/updates", label: "Updates", icon: "megaphone-outline" },
+  { href: "/admin/settings", label: "Settings", icon: "settings-outline" },
 ] as const;
 
 export function AdminShell({ title, subtitle, right, children }: { title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode }) {
@@ -34,9 +35,9 @@ const useStyles = makeStyles((colors) => StyleSheet.create({
   subtitle: { color: colors.muted, fontSize: 11, marginTop: 2 },
   iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 18, marginTop: 14 },
-  tab: { flex: 1, minHeight: 44, borderRadius: 13, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  tab: { flex: 1, minHeight: 44, borderRadius: 13, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 4 },
   tabActive: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
-  tabText: { color: colors.muted, fontWeight: "800", fontSize: 12 },
+  tabText: { color: colors.muted, fontWeight: "800", fontSize: 11 },
   tabTextActive: { color: colors.onBrandPrimary },
   body: { flex: 1, marginTop: 14 },
 }));

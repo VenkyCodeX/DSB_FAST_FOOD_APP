@@ -1,10 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
+import * as Haptics from "expo-haptics";
 import React from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { api, type OrderSummary } from "@/src/api/client";
 import { AdminShell } from "@/src/components/admin-shell";
 import { makeStyles, useTheme } from "@/src/theme";
 import type { Order, OrderStatus } from "@/src/types";
+
+const newOrderChime = require("../../assets/sounds/new-order.wav");
 
 const statuses: OrderStatus[] = ["Order Received", "Preparing", "Ready", "Completed"];
 const filters: { key: string; label: string }[] = [{ key: "active", label: "Active" }, { key: "Order Received", label: "New" }, { key: "Preparing", label: "Preparing" }, { key: "Ready", label: "Ready" }, { key: "Completed", label: "Completed" }];
@@ -13,11 +17,16 @@ function nextStatus(status?: OrderStatus): OrderStatus | null { const index = st
 
 export default function AdminOrdersScreen() {
   const styles = useStyles(); const { colors } = useTheme();
-  const [filter, setFilter] = React.useState("active"); const [orders, setOrders] = React.useState<Order[]>([]); const [summary, setSummary] = React.useState<OrderSummary | null>(null); const [loading, setLoading] = React.useState(true); const [refreshing, setRefreshing] = React.useState(false); const [error, setError] = React.useState<string | null>(null); const [busy, setBusy] = React.useState<string | null>(null);
-  const load = React.useCallback(async (silent = false) => { if (!silent) setLoading(true); try { const [list, counts] = await Promise.all([api.admin.orders(filter), api.admin.summary()]); setOrders(list); setSummary(counts); setError(null); } catch (value) { setError(value instanceof Error ? value.message : "Could not load orders."); } finally { setLoading(false); setRefreshing(false); } }, [filter]);
-  React.useEffect(() => { void load(); const timer = setInterval(() => void load(true), 15000); return () => clearInterval(timer); }, [load]);
+  const [filter, setFilter] = React.useState("active"); const [orders, setOrders] = React.useState<Order[]>([]); const [summary, setSummary] = React.useState<OrderSummary | null>(null); const [loading, setLoading] = React.useState(true); const [refreshing, setRefreshing] = React.useState(false); const [error, setError] = React.useState<string | null>(null); const [busy, setBusy] = React.useState<string | null>(null); const [soundOn, setSoundOn] = React.useState(true); const [newCount, setNewCount] = React.useState(0);
+  const player = useAudioPlayer(newOrderChime);
+  const knownIds = React.useRef<Set<string> | null>(null);
+  const soundRef = React.useRef(soundOn); soundRef.current = soundOn;
+  const load = React.useCallback(async (silent = false) => { if (!silent) setLoading(true); try { const [list, counts, incoming] = await Promise.all([api.admin.orders(filter), api.admin.summary(), filter === "active" || filter === "Order Received" ? Promise.resolve(null) : api.admin.orders("Order Received")]); const newOrders = incoming ?? list.filter((order) => (order.status ?? "Order Received") === "Order Received"); const ids = new Set(newOrders.map((order) => order.orderId)); if (knownIds.current) { const fresh = newOrders.filter((order) => !knownIds.current?.has(order.orderId)); if (fresh.length > 0) { setNewCount((count) => count + fresh.length); if (soundRef.current) { try { player.seekTo(0); player.play(); } catch { /* audio unavailable */ } void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined); } } } knownIds.current = ids; setOrders(list); setSummary(counts); setError(null); } catch (value) { setError(value instanceof Error ? value.message : "Could not load orders."); } finally { setLoading(false); setRefreshing(false); } }, [filter, player]);
+  React.useEffect(() => { void load(); const timer = setInterval(() => void load(true), 10000); return () => clearInterval(timer); }, [load]);
   const setStatus = async (order: Order, status: OrderStatus) => { setBusy(order.orderId); try { const updated = await api.admin.setStatus(order.orderId, status); setOrders((current) => current.map((item) => item.orderId === updated.orderId ? updated : item)); await load(true); } catch (value) { Alert.alert("Update failed", value instanceof Error ? value.message : "Please try again."); } finally { setBusy(null); } };
-  return <AdminShell title="Incoming orders" subtitle={summary ? `${summary["Order Received"]} new · ${summary.Preparing} preparing · ${summary.Ready} ready` : undefined} right={<Pressable accessibilityRole="button" accessibilityLabel="Refresh orders" onPress={() => void load()} style={styles.iconButton}><Ionicons name="refresh" size={21} color={colors.brandPrimary} /></Pressable>}>
+  return <AdminShell title="Incoming orders" subtitle={summary ? `${summary["Order Received"]} new · ${summary.Preparing} preparing · ${summary.Ready} ready` : undefined} right={<Pressable testID="sound-toggle" accessibilityRole="button" accessibilityLabel={soundOn ? "Mute new order alerts" : "Unmute new order alerts"} onPress={() => setSoundOn((value) => !value)} style={styles.iconButton}><Ionicons name={soundOn ? "notifications" : "notifications-off-outline"} size={21} color={soundOn ? colors.brandPrimary : colors.muted} /></Pressable>}>
+    {summary ? <View style={styles.stats} testID="today-summary"><View style={styles.stat}><Text style={styles.statLabel}>TODAY’S ORDERS</Text><Text style={styles.statValue}>{summary.today.count}</Text><Text style={styles.statMeta}>{summary.today.completed} completed</Text></View><View style={[styles.stat, styles.statAccent]}><Text style={[styles.statLabel, { color: colors.onBrandTertiary }]}>TODAY’S REVENUE</Text><Text style={[styles.statValue, { color: colors.brandPrimary }]}>₹{Math.round(summary.today.revenue)}</Text><Text style={[styles.statMeta, { color: colors.onBrandTertiary }]}>{summary.today.count ? `avg ₹${Math.round(summary.today.revenue / summary.today.count)} / order` : "No orders yet"}</Text></View></View> : null}
+    {newCount > 0 ? <Pressable testID="new-orders-toast" onPress={() => { setNewCount(0); setFilter("Order Received"); }} style={styles.toast}><Ionicons name="notifications" size={16} color={colors.onBrandPrimary} /><Text style={styles.toastText}>{newCount} new order{newCount === 1 ? "" : "s"} just came in · tap to view</Text><Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNewCount(0)} hitSlop={10}><Ionicons name="close" size={16} color={colors.onBrandPrimary} /></Pressable></Pressable> : null}
     <View style={styles.filterBar}><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>{filters.map((item) => { const active = item.key === filter; const count = summary && item.key !== "active" ? summary[item.key as OrderStatus] : summary ? summary["Order Received"] + summary.Preparing + summary.Ready : undefined; return <Pressable key={item.key} testID={`filter-${item.key}`} onPress={() => setFilter(item.key)} style={[styles.filter, active && styles.filterActive]}><Text style={[styles.filterText, active && styles.filterTextActive]}>{item.label}{count !== undefined ? ` · ${count}` : ""}</Text></Pressable>; })}</ScrollView></View>
     {loading ? <View style={styles.center}><ActivityIndicator size="large" color={colors.brandPrimary} /></View> : error ? <View style={styles.center}><Ionicons name="cloud-offline-outline" size={34} color={colors.error} /><Text style={styles.errorText}>{error}</Text><Pressable onPress={() => void load()}><Text style={styles.link}>Retry</Text></Pressable></View> : <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }} tintColor={colors.brandPrimary} />}>
       {orders.length === 0 ? <View style={styles.center}><Ionicons name="checkmark-done-circle-outline" size={40} color={colors.success} /><Text style={styles.muted}>No orders here right now.</Text></View> : orders.map((order) => { const status = order.status ?? "Order Received"; const next = nextStatus(status); const statusColor = status === "Ready" ? colors.success : status === "Preparing" ? colors.warning : status === "Completed" ? colors.muted : colors.brandPrimary; return <View key={order.orderId} testID={`admin-order-${order.orderId}`} style={styles.card}>
@@ -33,6 +42,14 @@ export default function AdminOrdersScreen() {
 
 const useStyles = makeStyles((colors) => StyleSheet.create({
   iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  stats: { flexDirection: "row", gap: 10, paddingHorizontal: 18, marginBottom: 12 },
+  stat: { flex: 1, backgroundColor: colors.surfaceSecondary, borderRadius: 16, padding: 13, borderWidth: 1, borderColor: colors.border },
+  statAccent: { backgroundColor: colors.brandTertiary, borderColor: colors.brandPrimary },
+  statLabel: { color: colors.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  statValue: { color: colors.onSurface, fontSize: 24, fontWeight: "900", marginTop: 4 },
+  statMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
+  toast: { marginHorizontal: 18, marginBottom: 12, minHeight: 44, borderRadius: 13, backgroundColor: colors.success, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12 },
+  toastText: { color: colors.onBrandPrimary, fontWeight: "800", fontSize: 12, flex: 1 },
   filterBar: { height: 44 },
   filters: { paddingHorizontal: 18, gap: 8, alignItems: "center" },
   filter: { height: 38, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border, justifyContent: "center" },

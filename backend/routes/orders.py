@@ -179,7 +179,17 @@ async def admin_orders(status: str | None = None, branchId: str | None = None, l
 async def admin_summary():
     pipeline = [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
     counts = {row["_id"]: row["count"] for row in await db.orders.aggregate(pipeline).to_list(10)}
-    return {status: counts.get(status, 0) for status in ORDER_STATUSES}
+    local_now = datetime.now(ZoneInfo(BRANCH_TZ))
+    start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_rows = await db.orders.aggregate([
+        {"$match": {"createdAt": {"$gte": start_of_day}}},
+        {"$group": {"_id": None, "count": {"$sum": 1}, "revenue": {"$sum": "$totalAmount"}, "completed": {"$sum": {"$cond": [{"$eq": ["$status", "Completed"]}, 1, 0]}}}},
+    ]).to_list(1)
+    today = today_rows[0] if today_rows else {"count": 0, "revenue": 0, "completed": 0}
+    return {
+        **{status: counts.get(status, 0) for status in ORDER_STATUSES},
+        "today": {"count": today["count"], "revenue": round(float(today["revenue"] or 0), 2), "completed": today["completed"], "date": start_of_day.date().isoformat()},
+    }
 
 
 @router.patch("/admin/orders/{order_id}/status", dependencies=[Depends(require_admin)])

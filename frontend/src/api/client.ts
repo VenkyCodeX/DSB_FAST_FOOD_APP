@@ -26,7 +26,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export type AdminItem = { _id: string; branchId: string; name: string; price: number; category: string; soldOut: boolean };
-export type OrderSummary = Record<OrderStatus, number>;
+export type OrderSummary = Record<OrderStatus, number> & { today: { count: number; revenue: number; completed: number; date: string } };
 
 export const api = {
   async inventory(branchId?: string): Promise<Array<{ _id?: string; name: string; soldOut?: boolean }>> { return request(`/items${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ""}`); },
@@ -52,6 +52,7 @@ export const api = {
     async createUpdate(payload: { title: string; description: string; branchId?: string | null }): Promise<RestaurantUpdate> { return request<RestaurantUpdate>("/admin/updates", { method: "POST", body: JSON.stringify(payload) }); },
     async toggleUpdate(id: string, active: boolean): Promise<RestaurantUpdate> { return request<RestaurantUpdate>(`/admin/updates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ active }) }); },
     async deleteUpdate(id: string) { return request(`/admin/updates/${encodeURIComponent(id)}`, { method: "DELETE" }); },
+    async changePin(newPin: string) { return request<{ success: boolean; message: string }>("/admin/change-pin", { method: "POST", body: JSON.stringify({ newPin }) }); },
   },
 };
 

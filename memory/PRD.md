@@ -66,3 +66,9 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - Frontend: OTP dev hint (tap to fill), admin panel `/admin` (PIN) → `/admin/orders|menu|updates` via `src/components/admin-shell.tsx`; Profile footer link. Receipt: Call branch (tel:), Reorder, WhatsApp share. Home banner plays `assets/sounds/ready-chime.wav` + haptic when status flips to Ready (native only).
 - To switch to real SMS: replace the OTP block in `routes/auth.py send_otp` and set DEV_MODE=false.
 - Tests: `backend/tests/backend_test.py` (pytest).
+
+## Session: Admin chime / Change PIN / Daily summary (done)
+- POST /api/admin/change-pin {newPin} (admin token) stores bcrypt hash in `settings` collection; login checks stored hash, else env ADMIN_PIN. Admin Settings tab (`app/admin/settings.tsx`).
+- GET /api/admin/orders/summary now includes `today: {count, revenue, completed, date}` (IST day). Orders screen shows two stat cards.
+- Admin orders polls every 10s; new "Order Received" ids trigger `assets/sounds/new-order.wav` + haptic + green toast (tap → New filter). Bell icon toggles sound.
+- Real SMS OTP: PENDING — user will provide MSG91/Twilio credentials later. Swap point: `routes/auth.py send_otp`.

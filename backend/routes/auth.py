@@ -3,11 +3,11 @@ from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
 
 import bcrypt
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from pymongo import ReturnDocument
 
-from core.auth import issue_jwt, now
+from core.auth import issue_jwt, now, require_admin
 from core.config import ADMIN_PIN, DEV_MODE, OTP_TTL_SECONDS
 from core.db import db
 
@@ -30,6 +30,17 @@ class VerifyRequest(PhoneRequest):
 
 class AdminLoginRequest(BaseModel):
     pin: str = Field(min_length=4, max_length=64)
+
+
+class ChangePinRequest(BaseModel):
+    newPin: str = Field(min_length=4, max_length=32, pattern=r"^\S+$")
+
+
+async def _verify_admin_pin(pin: str) -> bool:
+    stored = await db.settings.find_one({"key": "adminPinHash"})
+    if stored:
+        return bcrypt.checkpw(pin.encode(), stored["value"].encode())
+    return compare_digest(pin, ADMIN_PIN)
 
 
 @router.post("/otp/send")
@@ -79,6 +90,16 @@ async def verify_otp(body: VerifyRequest):
 
 @router.post("/admin/login")
 async def admin_login(body: AdminLoginRequest):
-    if not compare_digest(body.pin, ADMIN_PIN):
+    if not await _verify_admin_pin(body.pin):
         raise HTTPException(status_code=401, detail="Incorrect admin PIN.")
     return {"token": issue_jwt("admin", "admin"), "role": "admin"}
+
+
+@router.post("/admin/change-pin", dependencies=[Depends(require_admin)])
+async def change_admin_pin(body: ChangePinRequest):
+    await db.settings.update_one(
+        {"key": "adminPinHash"},
+        {"$set": {"value": bcrypt.hashpw(body.newPin.encode(), bcrypt.gensalt()).decode(), "updatedAt": now()}},
+        upsert=True,
+    )
+    return {"success": True, "message": "Admin PIN updated."}
