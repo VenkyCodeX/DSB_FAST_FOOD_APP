@@ -17,6 +17,9 @@ JWT_ALGORITHM = "HS256"
 
 DEFAULT_PREP_TIME = 15
 ORDER_STATUSES = ["Order Received", "Preparing", "Ready", "Completed"]
+CANCELLED = "Cancelled"
+CUSTOMER_CANCEL_WINDOW_SECONDS = 120
+DELIVERY_SLOT_MINUTES = 30
 BRANCH_IDS = ["nursi", "deglur"]
 ACTIVE_BRANCHES = ["nursi"]
 BRANCH_TZ = "Asia/Kolkata"

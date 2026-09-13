@@ -18,6 +18,7 @@ export function buildKitchenTicket(order: Order) {
     `${order.customerName ?? ""}  ${order.phoneNumber ?? ""}`,
     `${order.address ?? ""}`,
     `TOTAL Rs.${order.totalAmount}  ${(order.paymentMethod ?? "cod").toUpperCase()}`,
+    `DELIVER: ${order.deliveryTime && order.deliveryTime !== "ASAP" ? order.deliveryTime : "ASAP"}`,
     `STATUS: ${(order.status ?? "Order Received").toUpperCase()}`,
   ].filter((line) => line !== null).join("\n");
 }

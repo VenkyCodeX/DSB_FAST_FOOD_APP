@@ -26,8 +26,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export type AdminItem = { _id: string; branchId: string; name: string; price: number; category: string; soldOut: boolean };
-export type OrderSummary = Record<OrderStatus, number> & { today: { count: number; revenue: number; completed: number; date: string } };
+export type OrderSummary = Record<OrderStatus, number> & { today: { count: number; revenue: number; completed: number; cancelled: number; date: string } };
 export type WeeklyStats = { days: { date: string; label: string; count: number; revenue: number }[]; totalOrders: number; totalRevenue: number };
+export type TopItems = { days: number; items: { name: string; quantity: number; orders: number; revenue: number }[] };
 
 export const api = {
   async inventory(branchId?: string): Promise<Array<{ _id?: string; name: string; soldOut?: boolean }>> { return request(`/items${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ""}`); },
@@ -40,6 +41,7 @@ export const api = {
   async orderById(id: string): Promise<Order> { return request<Order>(`/orders/${encodeURIComponent(id)}`); },
   async confirmDelivery(id: string) { return request(`/orders/${encodeURIComponent(id)}/delivery-confirm`, { method: "PATCH" }); },
   async rateOrder(id: string, rating: number, review: string) { return request(`/orders/${encodeURIComponent(id)}/rating`, { method: "PATCH", body: JSON.stringify({ rating, review }) }); },
+  async cancelOrder(id: string): Promise<{ success: boolean; order: Order }> { return request(`/orders/${encodeURIComponent(id)}/cancel`, { method: "PATCH" }); },
   admin: {
     async login(pin: string) { const result = await request<{ token: string }>("/admin/login", { method: "POST", body: JSON.stringify({ pin }) }); await storage.secureSet(ADMIN_TOKEN_KEY, result.token); return result; },
     async logout() { await storage.secureRemove(ADMIN_TOKEN_KEY); },
@@ -47,6 +49,8 @@ export const api = {
     async orders(status?: string, branchId?: string): Promise<Order[]> { const params = new URLSearchParams(); if (status) params.set("status", status); if (branchId) params.set("branchId", branchId); const query = params.toString(); return request<Order[]>(`/admin/orders${query ? `?${query}` : ""}`); },
     async summary(): Promise<OrderSummary> { return request<OrderSummary>("/admin/orders/summary"); },
     async weekly(): Promise<WeeklyStats> { return request<WeeklyStats>("/admin/orders/weekly"); },
+    async topItems(): Promise<TopItems> { return request<TopItems>("/admin/orders/top-items"); },
+    async reject(orderId: string, reason: string): Promise<Order> { return request<Order>(`/admin/orders/${encodeURIComponent(orderId)}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) }); },
     async setStatus(orderId: string, status: OrderStatus): Promise<Order> { return request<Order>(`/admin/orders/${encodeURIComponent(orderId)}/status`, { method: "PATCH", body: JSON.stringify({ status }) }); },
     async items(branchId: string): Promise<AdminItem[]> { return request<AdminItem[]>(`/items?branchId=${encodeURIComponent(branchId)}`); },
     async setSoldOut(itemId: string, soldOut: boolean): Promise<AdminItem> { return request<AdminItem>(`/admin/items/${encodeURIComponent(itemId)}/sold-out`, { method: "PATCH", body: JSON.stringify({ soldOut }) }); },

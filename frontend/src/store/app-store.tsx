@@ -187,7 +187,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [orders]);
   useEffect(() => {
     if (!session?.user.phone) return;
-    const hasLive = orders.some((order) => order.status && order.status !== "Completed");
+    const hasLive = orders.some((order) => order.status && order.status !== "Completed" && order.status !== "Cancelled");
     if (!hasLive) return;
     const timer = setInterval(() => void refreshOrders(), 20000);
     return () => clearInterval(timer);

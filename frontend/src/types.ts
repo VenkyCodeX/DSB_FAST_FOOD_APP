@@ -1,6 +1,6 @@
 export type Language = "en" | "hi";
 export type Category = "Noodles" | "Rice" | "Starters" | "Drinks";
-export type OrderStatus = "Order Received" | "Preparing" | "Ready" | "Completed";
+export type OrderStatus = "Order Received" | "Preparing" | "Ready" | "Completed" | "Cancelled";
 
 export type MenuItem = {
   id: string;
@@ -64,6 +64,11 @@ export type Order = {
   address?: string;
   itemsOrdered: OrderItem[];
   notes?: string;
+  deliveryTime?: string;
+  cancelWindowSeconds?: number;
+  cancelledBy?: "customer" | "admin";
+  cancelReason?: string;
+  cancelledAt?: string;
   totalAmount: number;
   discount?: number;
   deliveryCharge?: number;

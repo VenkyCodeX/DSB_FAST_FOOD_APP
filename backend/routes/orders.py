@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from pymongo import ReturnDocument
 
 from core.auth import current_identity, now, require_admin
-from core.config import ACTIVE_BRANCHES, BRANCH_HOURS, BRANCH_TZ, DEFAULT_PREP_TIME, ORDER_STATUSES
+from core.config import ACTIVE_BRANCHES, BRANCH_HOURS, BRANCH_TZ, CANCELLED, CUSTOMER_CANCEL_WINDOW_SECONDS, DEFAULT_PREP_TIME, ORDER_STATUSES
 from core.db import db, serialize
 
 router = APIRouter()
@@ -37,6 +37,7 @@ class OrderCreate(BaseModel):
     address: str = Field(min_length=1)
     itemsOrdered: list[OrderItemIn] = Field(min_length=1)
     notes: str = Field(default="", max_length=200)
+    deliveryTime: str = Field(default="ASAP", pattern=r"^(ASAP|([01]\d|2[0-3]):[0-5]\d)$")
     totalAmount: float = Field(ge=0)
     couponCode: str | None = ""
     discount: float = 0
@@ -61,11 +62,22 @@ class StatusRequest(BaseModel):
     status: str
 
 
+class RejectRequest(BaseModel):
+    reason: str = Field(min_length=2, max_length=200)
+
+
 def _order_out(doc: dict) -> dict:
     out = serialize(doc)
-    for key in ("createdAt", "updatedAt", "deliveredAt", "ratedAt"):
+    for key in ("createdAt", "updatedAt", "deliveredAt", "ratedAt", "cancelledAt"):
         if out.get(key) is not None and hasattr(out[key], "isoformat"):
             out[key] = out[key].isoformat()
+    created = doc.get("createdAt")
+    if created is not None and doc.get("status") == "Order Received":
+        created_aware = created if created.tzinfo else created.replace(tzinfo=timezone.utc)
+        remaining = CUSTOMER_CANCEL_WINDOW_SECONDS - (now() - created_aware).total_seconds()
+        out["cancelWindowSeconds"] = max(0, int(remaining))
+    else:
+        out["cancelWindowSeconds"] = 0
     return out
 
 
@@ -98,6 +110,7 @@ async def create_order(body: OrderCreate, identity: dict = Depends(current_ident
         **body.model_dump(),
         "itemsOrdered": [item.model_dump() for item in body.itemsOrdered],
         "notes": body.notes.strip(),
+        "deliveryTime": body.deliveryTime,
         "orderId": order_id,
         "status": "Order Received",
         "prepTime": DEFAULT_PREP_TIME,
@@ -162,14 +175,35 @@ async def rate_order(order_id: str, body: RatingRequest, identity: dict = Depend
     return {"success": True, "order": _order_out(updated)}
 
 
-# ---------- Admin ----------
+@router.patch("/orders/{order_id}/cancel")
+async def cancel_order(order_id: str, identity: dict = Depends(current_identity)):
+    doc = await db.orders.find_one({"orderId": order_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if identity["role"] == "user" and identity["sub"] != doc["phoneNumber"]:
+        raise HTTPException(status_code=403, detail="This is not your order.")
+    if doc["status"] == CANCELLED:
+        return {"success": True, "order": _order_out(doc)}
+    if doc["status"] != "Order Received":
+        raise HTTPException(status_code=400, detail="The kitchen has already started this order, so it can't be cancelled. Please call the branch.")
+    created = doc["createdAt"] if doc["createdAt"].tzinfo else doc["createdAt"].replace(tzinfo=timezone.utc)
+    if (now() - created).total_seconds() > CUSTOMER_CANCEL_WINDOW_SECONDS:
+        raise HTTPException(status_code=400, detail="The 2-minute cancellation window has passed. Please call the branch.")
+    updated = await db.orders.find_one_and_update(
+        {"orderId": order_id, "status": "Order Received"},
+        {"$set": {"status": CANCELLED, "cancelledBy": "customer", "cancelReason": "Cancelled by customer", "cancelledAt": now(), "updatedAt": now()}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        raise HTTPException(status_code=400, detail="The order could not be cancelled anymore.")
+    return {"success": True, "order": _order_out(updated)}
 
 @router.get("/admin/orders", dependencies=[Depends(require_admin)])
 async def admin_orders(status: str | None = None, branchId: str | None = None, limit: int = 100):
     query: dict = {}
     if status == "active":
-        query["status"] = {"$ne": "Completed"}
-    elif status in ORDER_STATUSES:
+        query["status"] = {"$nin": ["Completed", CANCELLED]}
+    elif status in ORDER_STATUSES or status == CANCELLED:
         query["status"] = status
     if branchId:
         query["branchId"] = branchId
@@ -185,12 +219,13 @@ async def admin_summary():
     start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
     today_rows = await db.orders.aggregate([
         {"$match": {"createdAt": {"$gte": start_of_day}}},
-        {"$group": {"_id": None, "count": {"$sum": 1}, "revenue": {"$sum": "$totalAmount"}, "completed": {"$sum": {"$cond": [{"$eq": ["$status", "Completed"]}, 1, 0]}}}},
+        {"$group": {"_id": None, "count": {"$sum": {"$cond": [{"$eq": ["$status", CANCELLED]}, 0, 1]}}, "cancelled": {"$sum": {"$cond": [{"$eq": ["$status", CANCELLED]}, 1, 0]}}, "revenue": {"$sum": {"$cond": [{"$eq": ["$status", CANCELLED]}, 0, "$totalAmount"]}}, "completed": {"$sum": {"$cond": [{"$eq": ["$status", "Completed"]}, 1, 0]}}}},
     ]).to_list(1)
-    today = today_rows[0] if today_rows else {"count": 0, "revenue": 0, "completed": 0}
+    today = today_rows[0] if today_rows else {"count": 0, "revenue": 0, "completed": 0, "cancelled": 0}
     return {
         **{status: counts.get(status, 0) for status in ORDER_STATUSES},
-        "today": {"count": today["count"], "revenue": round(float(today["revenue"] or 0), 2), "completed": today["completed"], "date": start_of_day.date().isoformat()},
+        CANCELLED: counts.get(CANCELLED, 0),
+        "today": {"count": today["count"], "revenue": round(float(today["revenue"] or 0), 2), "completed": today["completed"], "cancelled": today["cancelled"], "date": start_of_day.date().isoformat()},
     }
 
 
@@ -200,7 +235,7 @@ async def admin_weekly():
     today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     start = today - timedelta(days=6)
     rows = await db.orders.aggregate([
-        {"$match": {"createdAt": {"$gte": start}}},
+        {"$match": {"createdAt": {"$gte": start}, "status": {"$ne": CANCELLED}}},
         {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$createdAt", "timezone": BRANCH_TZ}}, "count": {"$sum": 1}, "revenue": {"$sum": "$totalAmount"}}},
     ]).to_list(10)
     by_day = {row["_id"]: row for row in rows}
@@ -213,10 +248,43 @@ async def admin_weekly():
     return {"days": days, "totalOrders": sum(d["count"] for d in days), "totalRevenue": round(sum(d["revenue"] for d in days), 2)}
 
 
+@router.get("/admin/orders/top-items", dependencies=[Depends(require_admin)])
+async def admin_top_items(days: int = 7, limit: int = 8):
+    start = datetime.now(ZoneInfo(BRANCH_TZ)).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=max(0, days - 1))
+    rows = await db.orders.aggregate([
+        {"$match": {"createdAt": {"$gte": start}, "status": {"$ne": CANCELLED}}},
+        {"$unwind": "$itemsOrdered"},
+        {"$group": {"_id": "$itemsOrdered.name", "quantity": {"$sum": "$itemsOrdered.quantity"}, "revenue": {"$sum": {"$multiply": ["$itemsOrdered.price", "$itemsOrdered.quantity"]}}, "orders": {"$sum": 1}}},
+        {"$sort": {"quantity": -1, "revenue": -1}},
+        {"$limit": min(max(limit, 1), 20)},
+    ]).to_list(20)
+    return {"days": days, "items": [{"name": row["_id"], "quantity": row["quantity"], "orders": row["orders"], "revenue": round(float(row["revenue"] or 0), 2)} for row in rows]}
+
+
+@router.patch("/admin/orders/{order_id}/reject", dependencies=[Depends(require_admin)])
+async def admin_reject(order_id: str, body: RejectRequest):
+    doc = await db.orders.find_one({"orderId": order_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if doc["status"] == "Completed":
+        raise HTTPException(status_code=400, detail="Completed orders can't be rejected.")
+    updated = await db.orders.find_one_and_update(
+        {"orderId": order_id},
+        {"$set": {"status": CANCELLED, "cancelledBy": "admin", "cancelReason": body.reason.strip(), "cancelledAt": now(), "updatedAt": now()}},
+        return_document=ReturnDocument.AFTER,
+    )
+    return _order_out(updated)
+
+
 @router.patch("/admin/orders/{order_id}/status", dependencies=[Depends(require_admin)])
 async def admin_set_status(order_id: str, body: StatusRequest):
     if body.status not in ORDER_STATUSES:
         raise HTTPException(status_code=400, detail=f"Status must be one of {', '.join(ORDER_STATUSES)}.")
+    existing = await db.orders.find_one({"orderId": order_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if existing["status"] == CANCELLED:
+        raise HTTPException(status_code=400, detail="This order was cancelled and can't be moved.")
     update: dict = {"status": body.status, "updatedAt": now()}
     if body.status == "Completed":
         update["deliveredAt"] = now()
