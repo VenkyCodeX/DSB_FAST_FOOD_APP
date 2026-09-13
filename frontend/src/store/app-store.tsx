@@ -3,7 +3,7 @@ import { api, TOKEN_KEY } from "@/src/api/client";
 import { initialBranches } from "@/src/data/branches";
 import { initialMenu } from "@/src/data/menu";
 import { storage } from "@/src/utils/storage";
-import type { AuthSession, Branch, CartItem, Language, MenuItem, Order, RestaurantUpdate, User } from "@/src/types";
+import type { AuthSession, Branch, CartItem, Language, MenuItem, Order, OrderItem, RestaurantUpdate, User } from "@/src/types";
 
 const CART_KEY = "dsb_cart";
 const USER_KEY = "dsb_user";
@@ -36,6 +36,8 @@ type AppContextValue = {
   itemCount: number;
   canOrder: boolean;
   addToCart: (item: MenuItem) => void;
+  reorder: (items: OrderItem[]) => { added: number; skipped: string[] };
+  activeOrder: Order | null;
   updateQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
@@ -138,6 +140,25 @@ export function AppProvider({ children }: PropsWithChildren) {
     });
   }, [canOrder, selectedBranch]);
 
+  const reorder = useCallback((items: OrderItem[]) => {
+    if (!canOrder || !selectedBranch) return { added: 0, skipped: items.map((item) => item.name) };
+    const skipped: string[] = []; const additions: CartItem[] = [];
+    for (const item of items) {
+      const menuItem = menu.find((entry) => entry.name.toLowerCase() === item.name.toLowerCase());
+      if (!menuItem || menuItem.soldOut) { skipped.push(item.name); continue; }
+      additions.push({ ...menuItem, quantity: item.quantity, branchId: selectedBranch.id });
+    }
+    setCart((current) => {
+      const next = [...current];
+      for (const addition of additions) {
+        const index = next.findIndex((entry) => entry.id === addition.id && entry.branchId === selectedBranch.id);
+        if (index >= 0) next[index] = { ...next[index], quantity: next[index].quantity + addition.quantity }; else next.push(addition);
+      }
+      return next;
+    });
+    return { added: additions.length, skipped };
+  }, [canOrder, menu, selectedBranch]);
+
   const updateQuantity = useCallback((id: string, quantity: number) => setCart((current) => quantity <= 0 ? current.filter((item) => item.id !== id) : current.map((item) => item.id === id ? { ...item, quantity } : item)), []);
   const removeFromCart = useCallback((id: string) => setCart((current) => current.filter((item) => item.id !== id)), []);
   const clearCart = useCallback(() => setCart([]), []);
@@ -159,6 +180,18 @@ export function AppProvider({ children }: PropsWithChildren) {
     finally { setOrdersLoading(false); }
   }, [session?.user.phone]);
   useEffect(() => { void refreshOrders(); }, [refreshOrders]);
+  const activeOrder = useMemo(() => {
+    const live = orders.filter((order) => order.status === "Preparing" || order.status === "Ready");
+    live.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+    return live[0] ?? null;
+  }, [orders]);
+  useEffect(() => {
+    if (!session?.user.phone) return;
+    const hasLive = orders.some((order) => order.status && order.status !== "Completed");
+    if (!hasLive) return;
+    const timer = setInterval(() => void refreshOrders(), 20000);
+    return () => clearInterval(timer);
+  }, [orders, refreshOrders, session?.user.phone]);
   const setLanguage = useCallback((value: Language) => { setLanguageState(value); void storage.setItem(LANGUAGE_KEY, value); }, []);
   const saveUser = useCallback(async (user: User) => { setSession((current) => current ? { ...current, user } : current); await storage.setItem(USER_KEY, user as unknown as { [key: string]: string | number | boolean | null }); }, []);
   const login = useCallback(async (value: AuthSession) => { setSession(value); await storage.secureSet(TOKEN_KEY, value.token); await storage.setItem(USER_KEY, value.user as unknown as { [key: string]: string | number | boolean | null }); }, []);
@@ -167,7 +200,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const deliveryCharge = cart.length ? (selectedBranch?.deliveryCharge ?? 0) : 0;
   const minimumOrder = selectedBranch?.minimumOrder ?? 50;
   const total = Math.max(0, subtotal + deliveryCharge - discount);
-  const value = useMemo(() => ({ branches, selectedBranch, selectedBranchId, branchHydrated, menu, updates, cart, session, language, orders, menuLoading, menuError, ordersLoading, ordersError, updatesLoading, couponCode, discount, couponMessage, subtotal, deliveryCharge, minimumOrder, total, itemCount: cart.reduce((sum, item) => sum + item.quantity, 0), canOrder, addToCart, updateQuantity, removeFromCart, clearCart, applyCoupon, clearCoupon, changeBranch, refreshMenu, refreshOrders, refreshUpdates, setLanguage, saveUser, login, logout }), [branches, selectedBranch, selectedBranchId, branchHydrated, menu, updates, cart, session, language, orders, menuLoading, menuError, ordersLoading, ordersError, updatesLoading, couponCode, discount, couponMessage, subtotal, deliveryCharge, minimumOrder, total, canOrder, addToCart, updateQuantity, removeFromCart, clearCart, applyCoupon, clearCoupon, changeBranch, refreshMenu, refreshOrders, refreshUpdates, setLanguage, saveUser, login, logout]);
+  const value = useMemo(() => ({ branches, selectedBranch, selectedBranchId, branchHydrated, menu, updates, cart, session, language, orders, menuLoading, menuError, ordersLoading, ordersError, updatesLoading, couponCode, discount, couponMessage, subtotal, deliveryCharge, minimumOrder, total, itemCount: cart.reduce((sum, item) => sum + item.quantity, 0), canOrder, addToCart, reorder, activeOrder, updateQuantity, removeFromCart, clearCart, applyCoupon, clearCoupon, changeBranch, refreshMenu, refreshOrders, refreshUpdates, setLanguage, saveUser, login, logout }), [branches, selectedBranch, selectedBranchId, branchHydrated, menu, updates, cart, session, language, orders, menuLoading, menuError, ordersLoading, ordersError, updatesLoading, couponCode, discount, couponMessage, subtotal, deliveryCharge, minimumOrder, total, canOrder, addToCart, reorder, activeOrder, updateQuantity, removeFromCart, clearCart, applyCoupon, clearCoupon, changeBranch, refreshMenu, refreshOrders, refreshUpdates, setLanguage, saveUser, login, logout]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

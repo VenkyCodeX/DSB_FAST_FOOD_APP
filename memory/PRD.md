@@ -52,3 +52,10 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - WhatsApp: `src/utils/whatsapp.ts` builds a full order summary (items, totals, address, branch) and auto-opens WhatsApp (whatsapp:// → wa.me fallback) to the Nursi branch number 919321611315 ~0.9s after the success screen mounts; button to resend. Order detail screen has "Share receipt on WhatsApp".
 - Splash: `src/components/animated-splash.tsx` (reanimated) — logo pops in with pulsing red glow, fades out after ~2.5s; wraps the root Stack in `app/_layout.tsx`.
 - Branded receipt: `app/order/[id].tsx` shows logo, brand, branch name/address/phone, receipt no., date, customer, items, subtotal/delivery/discount/total, payment, address.
+
+## Session: Deglur WhatsApp / Active order banner / Reorder (done)
+- Deglur branch phone/whatsapp set to 919321611315 (same as Nursi, per user).
+- Store: `activeOrder` (latest order with status Preparing/Ready), `reorder(items)` (matches by name against current menu, skips sold-out/missing), auto-polls orders every 20s while any order is not Completed.
+- Home: `src/components/active-order-banner.tsx` shows a pulsing banner (Preparing = red/amber, Ready = green) linking to `/order/[id]`.
+- Receipt (`app/order/[id].tsx`): "Reorder these items" button → adds to cart → opens Cart; alerts about skipped items.
+- BLOCKER: user has no backend URL. All order-related features need a live backend. Proposed: build DSB API in this workspace's FastAPI backend (items, otp, orders, coupons, updates) if user agrees.

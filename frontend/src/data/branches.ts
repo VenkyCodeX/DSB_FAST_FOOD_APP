@@ -24,6 +24,8 @@ export const initialBranches: Branch[] = [
     city: "Deglur",
     state: "Maharashtra",
     pincode: "431717",
+    phone: "9321611315",
+    whatsapp: "919321611315",
     isActive: false,
     isComingSoon: true,
     openingDate: "Diwali 2026",
