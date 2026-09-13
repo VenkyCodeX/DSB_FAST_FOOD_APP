@@ -46,3 +46,9 @@ The requested existing Node.js/Express backend URL was not supplied. The workspa
 - Official DSB Fast Food logo saved at `frontend/assets/images/logo.png`.
 - Generated app icon, adaptive icon, splash image and favicon from the logo (black background).
 - Logo shown on: branch selection (welcome) screen, Home header, and phone sign-in screen.
+
+## Session: WhatsApp / Splash / Receipt / Backend config (done)
+- Backend URL: set `EXPO_PUBLIC_API_URL` in `frontend/.env` to the real Node.js API (currently empty → falls back to preview backend). `src/api/client.ts` reads it first.
+- WhatsApp: `src/utils/whatsapp.ts` builds a full order summary (items, totals, address, branch) and auto-opens WhatsApp (whatsapp:// → wa.me fallback) to the Nursi branch number 919321611315 ~0.9s after the success screen mounts; button to resend. Order detail screen has "Share receipt on WhatsApp".
+- Splash: `src/components/animated-splash.tsx` (reanimated) — logo pops in with pulsing red glow, fades out after ~2.5s; wraps the root Stack in `app/_layout.tsx`.
+- Branded receipt: `app/order/[id].tsx` shows logo, brand, branch name/address/phone, receipt no., date, customer, items, subtotal/delivery/discount/total, payment, address.

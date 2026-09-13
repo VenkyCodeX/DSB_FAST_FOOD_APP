@@ -2,7 +2,8 @@ import Constants from "expo-constants";
 import { storage } from "@/src/utils/storage";
 import type { CouponResult, Order, AuthSession, RestaurantUpdate } from "@/src/types";
 
-const baseUrl = String(Constants.expoConfig?.extra?.apiBaseUrl ?? process.env.EXPO_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
+// EXPO_PUBLIC_API_URL = your real Node.js backend (e.g. https://api.dsbfastfood.com). Falls back to the preview backend when empty.
+const baseUrl = String(process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiBaseUrl || process.env.EXPO_PUBLIC_BACKEND_URL || "").replace(/\/$/, "");
 const API = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
 const TOKEN_KEY = "dsb_auth_token";
 

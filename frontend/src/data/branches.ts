@@ -9,7 +9,7 @@ export const initialBranches: Branch[] = [
     state: "Maharashtra",
     pincode: "431709",
     phone: "9321611315",
-    whatsapp: "9321611315",
+    whatsapp: "919321611315",
     openingTime: "11:00",
     closingTime: "23:00",
     isActive: true,

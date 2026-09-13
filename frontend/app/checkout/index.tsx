@@ -24,7 +24,7 @@ export default function CheckoutScreen() {
     try {
       const result = await api.createOrder({ customerName: name.trim(), phoneNumber: phone, address: address.trim(), itemsOrdered: cart.map(({ name: itemName, price, quantity }) => ({ name: itemName, price, quantity })), totalAmount: total, couponCode, discount, deliveryCharge, paymentMethod: "cod", transactionId: "", branchId: selectedBranch.id, branchName: selectedBranch.name, branchAddress: selectedBranch.address });
       if (!result.success) throw new Error("The order was not placed. Please try again.");
-      clearCart(); router.replace({ pathname: "/order/success", params: { orderId: result.orderId, prepTime: String(result.prepTime ?? 10), customerName: name.trim(), phone, address: address.trim(), total: String(total), branchName: selectedBranch.name } });
+      clearCart(); router.replace({ pathname: "/order/success", params: { orderId: result.orderId, prepTime: String(result.prepTime ?? 10), customerName: name.trim(), phone, address: address.trim(), total: String(total), branchName: selectedBranch.name, items: JSON.stringify(cart.map(({ name: itemName, price, quantity }) => ({ name: itemName, price, quantity }))) } });
     } catch (value) { setError(value instanceof Error ? value.message : "The order was not placed. Your cart is safe to retry."); }
     finally { setPlacing(false); }
   };
